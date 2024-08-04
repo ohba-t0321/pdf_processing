@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Manipulation</title>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <style>
+    #fileList {
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    #pdfViewer {
+      margin-top: 20px;
+      width: 100%;
+      height: 500px;
+      border: 1px solid #ccc;
+    }
+    #dropZone {
+      width: 50%;
+      height: 100px;
+      border: 2px dashed #ccc;
+      text-align: center;
+      line-height: 100px;
+      color: #aaa;
+      margin-bottom: 20px;
+    }
+    #dropZone.dragover {
+      border-color: #000;
+      color: #000;
+    }
+    .object{
+        display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>PDFを回転させるツール</h1>
+  <div class="object">
+    <p id="dropZone">ここにファイルをドロップ</p>
+    <p id="fileList"></p>
+    <label for="rotationAngle">回転する角度(90,180,270):</label>
+    <input type="number" id="rotationAngle" value="90">
+    <br>
+    <label for="pageNumber">ページ番号:</label>
+    <input type="text" id="pageNumbers" placeholder="1, 2, 3, 10-15">(コンマ区切りで複数指定、ハイフンで範囲指定)
+    <br><br>
+    <button id="rotatePdfBtn">回転</button>
+    <!-- <button id="mergePdfBtn">Merge PDFs</button> -->
+  </div>
+  <div class="object">
+    <iframe id="pdfViewer"></iframe>
+  </div>
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileListDiv = document.getElementById('fileList');
+    let fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.multiple = false;
+    let currentPdfBytes = null;
+
+    fileInput.addEventListener('change', handleFiles);
+
+    dropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFiles(event);
+    });
+
+    function handleFiles(event) {
+      const files = event.dataTransfer ? event.dataTransfer.files : event.target.files;
+      if (files.length > 0) {
+        displayFileList(files);
+        if (files[0].type === 'application/pdf') {
+          displayPDF(files[0]);
+        }
+      }
+    }
+
+    function displayFileList(files) {
+      fileListDiv.innerHTML = '<ul>' + Array.from(files).map(file => `<li>${file.name}</li>`).join('') + '</ul>';
+      fileInput.files = files; // Update the hidden file input with selected files
+    }
+
+    async function displayPDF(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      currentPdfBytes = arrayBuffer;
+      const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+      const pdfBytes = await pdfDoc.save();
+      showPDF(pdfBytes);
+    }
+
+    document.getElementById('rotatePdfBtn').addEventListener('click', async () => {
+      if (!currentPdfBytes) {
+        alert('Please select or drop a PDF file.');
+        return;
+      }
+      const rotationAngle = parseInt(document.getElementById('rotationAngle').value);
+      const pageNumbersInput = document.getElementById('pageNumbers').value;
+      const pageNumbers = parsePageNumbers(pageNumbersInput);
+
+      const rotatedPdfBytes = await rotatePDF(currentPdfBytes, rotationAngle, pageNumbers);
+      currentPdfBytes = rotatedPdfBytes; // Update currentPdfBytes with rotated PDF
+      showPDF(currentPdfBytes);
+    //   download(rotatedPdfBytes, 'rotated.pdf');
+    });
+
+    function parsePageNumbers(input) {
+      const pages = new Set();
+      const parts = input.split(',').map(part => part.trim());
+
+      parts.forEach(part => {
+        if (part.includes('-')) {
+          const [start, end] = part.split('-').map(num => parseInt(num.trim()) - 1); // Convert to 0-based index
+          if (!isNaN(start) && !isNaN(end) && start <= end) {
+            for (let i = start; i <= end; i++) {
+              pages.add(i);
+            }
+          }
+        } else {
+          const num = parseInt(part) - 1; // Convert to 0-based index
+          if (!isNaN(num)) {
+            pages.add(num);
+          }
+        }
+      });
+
+      return Array.from(pages);
+    }
+
+    // document.getElementById('mergePdfBtn').addEventListener('click', async () => {
+    //   const files = fileInput.files;
+    //   if (files.length < 2) {
+    //     alert('Please select at least two PDF files.');
+    //     return;
+    //   }
+
+    //   const arrayBuffers = [];
+    //   for (const file of files) {
+    //     const arrayBuffer = await file.arrayBuffer();
+    //     arrayBuffers.push(arrayBuffer);
+    //   }
+
+    //   const mergedPdfBytes = await mergePDFs(arrayBuffers);
+    //   showPDF(mergedPdfBytes);
+    // //   download(mergedPdfBytes, 'merged.pdf');
+    // });
+
+    async function rotatePDF(inputArrayBuffer, rotationAngle, pageNumbers) {
+      const pdfDoc = await PDFLib.PDFDocument.load(inputArrayBuffer);
+      const pages = pdfDoc.getPages();
+
+      pageNumbers.forEach(pageNumber => {
+        if (pageNumber >= 0 && pageNumber < pages.length) {
+          pages[pageNumber].setRotation(PDFLib.degrees(rotationAngle)); // Rotate specified page
+        } else {
+          alert(`Invalid page number: ${pageNumber + 1}`);
+        }
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      return pdfBytes;
+    }
+
+    async function mergePDFs(pdfArrayBuffers) {
+      const mergedPdf = await PDFLib.PDFDocument.create();
+      
+      for (const pdfArrayBuffer of pdfArrayBuffers) {
+        const pdf = await PDFLib.PDFDocument.load(pdfArrayBuffer);
+        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        copiedPages.forEach(page => {
+          mergedPdf.addPage(page);
+        });
+      }
+
+      const pdfBytes = await mergedPdf.save();
+      return pdfBytes;
+    }
+
+    function showPDF(data) {
+      const blob = new Blob([data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+
+      const pdfViewer = document.getElementById('pdfViewer');
+      pdfViewer.src = url;
+    }
+
+    function download(data, filename) {
+      const blob = new Blob([data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
