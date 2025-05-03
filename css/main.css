@@ -1,7 +1,14 @@
+h1 {
+  margin-bottom: 10px;
+  padding: 10px 10px 10px 20px;
+  color: #ddd;
+  background-color: cadetblue;
+}
+
 #fileList {
     margin-top: 10px;
     margin-bottom: 20px;
-    padding: 10px;
+    padding: 20px;
     background-color: #f0f0f0;  
 }
 #fileList p {
@@ -31,6 +38,7 @@
   color: #000;
 }
 .object {
+  margin:10px;
   display: inline-block;
   vertical-align: top;
   width: 45vw
@@ -92,4 +100,18 @@
   /* 右寄せ */
   display: flex;
   margin:0 0 0 auto;
+}
+
+#downloadPdfBtn{
+  /* 右寄せ */
+  display: flex;
+  margin:0 0 0 auto;
+  margin-bottom: 10px;
+}
+
+#downloadPdfBtn:disabled {
+  background-color: #ccc;
+  color: #fff;
+  border: #666 1px solid;
+  cursor: not-allowed;
 }

@@ -31,6 +31,7 @@ function clearAllFiles() {
     selectedFiles = []; // 選択されたファイルをリセット
     const fileContainer = document.getElementById('fileContainer');
     fileContainer.innerHTML = ''; // 表示をクリア
+    hiddenPDF(); // PDFを非表示にする
 }
 
 function handleFiles(event) {  
@@ -186,12 +187,15 @@ function moveFile(fromIndex, toIndex) {
     selectedFiles.splice(toIndex, 0, item);  
       
     // 表示を更新  
-    displayFileList();  
+    displayFileList();
+    hiddenPDF(); // PDFを非表示にする  
+ 
 }
 
 function removeFile(index) {  
     selectedFiles.splice(index, 1);  
-    displayFileList();  
+    displayFileList();
+    hiddenPDF(); // PDFを非表示にする  
 }
 
 async function displayPDF(file) {
@@ -241,6 +245,13 @@ function showPDF(data) {
 
     const pdfViewer = document.getElementById('pdfViewer');
     pdfViewer.src = url;
+}
+
+function hiddenPDF() {
+  const pdfViewer = document.getElementById('pdfViewer');
+  pdfViewer.src = ''; // PDFを非表示にするためにsrcを空にする
+  document.getElementById('downloadPdfBtn').disabled = true;  // ダウンロードボタンを無効化  
+
 }
 
 function download(data, filename) {
