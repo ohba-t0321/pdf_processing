@@ -7,6 +7,12 @@ fileInput.type = 'file';
 fileInput.multiple = true;
 fileInput.accept = 'application/pdf'; // PDFファイルのみを受け入れる
 fileInput.addEventListener('change', handleFiles);
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+});
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+});
 
 dropZone.addEventListener('dragover', (event) => {
     event.preventDefault(); // デフォルトの動作をキャンセル
@@ -266,3 +272,16 @@ function download(data, filename) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+const iframe = document.getElementById('pdfViewer');
+
+iframe.addEventListener('load', () => {
+    const iframeDoc = iframe.contentWindow.document;
+
+    iframeDoc.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+    iframeDoc.addEventListener('drop', (e) => {
+        e.preventDefault();
+    });
+});

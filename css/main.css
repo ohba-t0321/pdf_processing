@@ -31,6 +31,7 @@ h1 {
   padding: 20px;
   line-height: 125%;
   color: #aaa;
+  background-color: #f9f9f9;
   margin-bottom: 20px;
 }
 #dropZone.dragover {
